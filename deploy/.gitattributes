@@ -1,0 +1,3 @@
+* diff=git-crypt filter=git-crypt
+.gitattributes !diff !filter
+
