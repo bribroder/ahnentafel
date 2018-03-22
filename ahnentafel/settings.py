@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.0/ref/settings/
 """
 
+import iptools
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -27,6 +28,30 @@ DEBUG = os.environ.get('AHNENTAFEL_DEBUG', False)
 
 ALLOWED_HOSTS = ['*']
 
+INTERNAL_IPS = iptools.IpRangeList(
+    '127.0.0.1',
+    '192.168/16',
+    '172.16/12',
+    '10/8'
+)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console'],
+            'level': os.environ.get('AHNENTAFEL_DEBUG_LEVEL', 'DEBUG'),
+            'propagate': True,
+        },
+    },
+}
+
 
 # Application definition
 
@@ -37,6 +62,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
+    'django_celery_results',
     'ahnentafel'
 ]
 
@@ -76,11 +103,12 @@ WSGI_APPLICATION = 'ahnentafel.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql.psycopg2',
-        'NAME': os.environ.get('AHNENTAFEL_DB_NAME', 'postgres'),
-        'USER':
-        'PASSWORD':
-        'HOST':
+        'ENGINE':   'django.contrib.gis.db.backends.postgis',
+        'HOST':     os.environ.get('AHNENTAFEL_DB_HOST',        None),
+        'NAME':     os.environ.get('AHNENTAFEL_DB_NAME',        'postgres'),
+        'USER':     os.environ.get('AHNENTAFEL_DB_USER',        'postgres'),
+        'PASSWORD': os.environ.get('AHNENTAFEL_DB_PASSWORD',    ''),
+        'PORT':     os.environ.get('AHNENTAFEL_DB_PORT',        '5432')
     }
 }
 
@@ -122,4 +150,19 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
 STATIC_URL = '/assets/'
+STATIC_ROOT = '/opt/ahnentafel/assets'
+
+
+# Celery config
+
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_BROKER_URL = os.environ.get('AHNENTAFEL_BROKER_URL', 'amqp://{}:{}@{}'.format(
+        os.environ.get('AHNENTAFEL_MQ_USER', 'guest'),
+        os.environ.get('AHNENTAFEL_MQ_PASSWORD', 'guest'),
+        os.environ.get('AHNENTAFEL_MQ_HOST', 'localhost')
+    )
+)
+
+CELERY_TASK_ACKS_LATE = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 
